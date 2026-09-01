@@ -6,3 +6,10 @@ pymysql>=1.1
 cryptography>=42.0
 # 读取 .env 配置文件
 python-dotenv>=1.0
+
+# 向量库与 RAG（langchain 全家桶）
+langchain-milvus>=0.4
+langchain-openai>=1.1
+langchain-text-splitters>=1.1
+langchain-community>=1.0
+dashscope>=1.20

@@ -5,6 +5,7 @@
 ## 当前进度
 
 - 阶段 1（已完成）：MySQL 表结构设计 + 种子数据入库
+- 阶段 2（已完成）：文档向量化 + 写入 Milvus 向量库
 
 ## 运行方式
 
@@ -19,4 +20,7 @@
 # 2. 初始化数据库并灌入种子数据
 python -m app.init_db
 python -m app.seed_data
+
+# 3. 把文档向量化写入 Milvus（需先启动 Milvus，且 .env 配置好 DASHSCOPE_API_KEY）
+python -m app.indexer
 ```
