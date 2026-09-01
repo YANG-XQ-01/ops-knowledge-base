@@ -6,6 +6,7 @@
 
 - 阶段 1（已完成）：MySQL 表结构设计 + 种子数据入库
 - 阶段 2（已完成）：文档向量化 + 写入 Milvus 向量库
+- 阶段 3（已完成）：RAG 问答链路（检索 + 通义千问生成）
 
 ## 运行方式
 
@@ -23,4 +24,7 @@ python -m app.seed_data
 
 # 3. 把文档向量化写入 Milvus（需先启动 Milvus，且 .env 配置好 DASHSCOPE_API_KEY）
 python -m app.indexer
+
+# 4. RAG 问答测试（需要 .env 配置好 DASHSCOPE_API_KEY）
+python -m app.qa_chain
 ```
