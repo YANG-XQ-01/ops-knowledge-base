@@ -1,0 +1,8 @@
+# 数据库 ORM：用 Python 代码操作 MySQL
+sqlalchemy>=2.0,<2.1
+# MySQL 驱动（纯 Python 实现，无需编译）
+pymysql>=1.1
+# MySQL 8 默认认证方式需要这个加密库
+cryptography>=42.0
+# 读取 .env 配置文件
+python-dotenv>=1.0

@@ -1,0 +1,27 @@
+# Python 虚拟环境
+.venv/
+venv/
+
+# Python 缓存
+__pycache__/
+*.py[cod]
+
+# 环境变量和密钥（绝不提交）
+.env
+
+# 数据库文件
+*.sqlite3
+*.db
+
+# IDE / 系统文件
+.idea/
+.vscode/
+.DS_Store
+
+# 测试和覆盖率
+.pytest_cache/
+.coverage
+htmlcov/
+
+# 日志
+*.log
