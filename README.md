@@ -7,6 +7,7 @@
 - 阶段 1（已完成）：MySQL 表结构设计 + 种子数据入库
 - 阶段 2（已完成）：文档向量化 + 写入 Milvus 向量库
 - 阶段 3（已完成）：RAG 问答链路（检索 + 通义千问生成）
+- 阶段 4（已完成）：FastAPI 后端接口（REST API）
 
 ## 运行方式
 
@@ -27,4 +28,7 @@ python -m app.indexer
 
 # 4. RAG 问答测试（需要 .env 配置好 DASHSCOPE_API_KEY）
 python -m app.qa_chain
+
+# 5. 启动 FastAPI 服务（浏览器打开 http://127.0.0.1:8000/docs 有交互式文档）
+uvicorn app.main:app --reload
 ```
