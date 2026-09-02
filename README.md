@@ -8,6 +8,7 @@
 - 阶段 2（已完成）：文档向量化 + 写入 Milvus 向量库
 - 阶段 3（已完成）：RAG 问答链路（检索 + 通义千问生成）
 - 阶段 4（已完成）：FastAPI 后端接口（REST API）
+- 阶段 5（已完成）：Redis 缓存优化（Cache Aside）
 
 ## 运行方式
 
@@ -32,3 +33,13 @@ python -m app.qa_chain
 # 5. 启动 FastAPI 服务（浏览器打开 http://127.0.0.1:8000/docs 有交互式文档）
 uvicorn app.main:app --reload
 ```
+
+## Redis 缓存
+
+项目使用独立 Redis 容器（端口 6380，避免与机器上其他服务占用 6379 冲突）：
+
+```powershell
+docker run -d --name ops-redis -p 6380:6379 redis:6-alpine
+```
+
+问答接口采用 Cache Aside 模式：先查缓存，命中直接返回；未命中走 RAG 并写回缓存（TTL 1 小时）。

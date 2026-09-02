@@ -26,6 +26,12 @@ EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "text-embedding-v3")
 # 大模型配置（通义千问）
 LLM_MODEL = os.getenv("LLM_MODEL", "qwen-plus")
 
+# Redis 缓存配置
+REDIS_HOST = os.getenv("REDIS_HOST", "127.0.0.1")
+REDIS_PORT = int(os.getenv("REDIS_PORT", "6380"))
+REDIS_DB = int(os.getenv("REDIS_DB", "0"))
+CACHE_TTL = int(os.getenv("CACHE_TTL", "3600"))  # 缓存过期时间（秒）
+
 # 拼接成 SQLAlchemy 需要的连接地址（DSN）
 # "mysql+pymysql" 的意思是：用 pymysql 这个驱动去连 MySQL
 DATABASE_URL = (

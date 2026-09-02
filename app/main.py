@@ -8,6 +8,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from pydantic import BaseModel, Field
 
+from . import cache
 from .qa_chain import ask, build_chain, load_vector_store
 
 # ---------- 请求 / 响应模型（Pydantic） ----------
@@ -31,6 +32,7 @@ class AskResponse(BaseModel):
     question: str
     answer: str
     sources: list[str] = []  # 参考的文档标题列表
+    from_cache: bool = False  # 是否来自缓存（教学/调试用）
 
 
 # ---------- 全局状态（服务启动时初始化一次） ----------
@@ -74,12 +76,32 @@ def ask_endpoint(request: AskRequest):
     """
     question = request.question
 
-    # 1. 单独检索一次，把参考文档的标题带回来给用户看（溯源）
+    # 第 1 步：先查缓存（Cache Aside 模式第一步）
+    # 命中 = 别人问过同样的问题，直接把存好的回答端出去，不调大模型
+    cached = cache.get_cached(question)
+    if cached is not None:
+        return AskResponse(
+            question=question,
+            answer=cached["answer"],
+            sources=cached["sources"],
+            from_cache=True,
+        )
+
+    # 第 2 步：缓存未命中，走完整 RAG 流程
+    # 单独检索一次，把参考文档的标题带回来给用户看（溯源）
     retriever = _vector_store.as_retriever(search_kwargs={"k": 3})
     docs = retriever.invoke(question)
     sources = [doc.metadata["title"] for doc in docs]
 
-    # 2. 走 RAG 流水线拿回答
+    # 走 RAG 流水线拿回答
     answer = ask(question, _chain)
 
-    return AskResponse(question=question, answer=answer, sources=sources)
+    # 第 3 步：把结果写回缓存，下次同样的问题直接命中
+    cache.set_cached(question, answer, sources)
+
+    return AskResponse(
+        question=question,
+        answer=answer,
+        sources=sources,
+        from_cache=False,
+    )
