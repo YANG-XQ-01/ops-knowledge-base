@@ -10,6 +10,7 @@
 - 阶段 4（已完成）：FastAPI 后端接口（REST API）
 - 阶段 5（已完成）：Redis 缓存优化（Cache Aside）
 - 阶段 6（已完成）：Web 聊天前端页面
+- 阶段 7（已完成）：自动化测试与错误处理
 
 ## 运行方式
 
@@ -37,6 +38,16 @@ uvicorn app.main:app --reload
 
 服务启动后，浏览器打开 **http://127.0.0.1:8000** 即可使用聊天页面；
 打开 **http://127.0.0.1:8000/docs** 可查看交互式接口文档。
+
+## 自动化测试
+
+```powershell
+python -m pytest tests/ -v
+```
+
+说明：`pytest.ini` 禁用了 cacheprovider 插件——在这台 Windows + Python 3.13
+机器上 pytest 向项目内写 `.pytest_cache` 会导致进程退出卡死（已定位验证），
+禁用后测试可正常退出，不影响测试结果。
 
 ## Redis 缓存
 

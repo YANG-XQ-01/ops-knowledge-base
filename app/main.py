@@ -6,8 +6,9 @@
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.responses import FileResponse
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
@@ -69,6 +70,20 @@ STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception):
+    """兜底异常处理：任何没被捕获的异常，都返回友好 JSON 而不是堆栈。
+
+    类比：餐厅后厨着火不能让客人看到火苗——
+    内部错误记录日志，对外只说「请稍后重试」。
+    """
+    print(f"❌ 未处理异常：{exc}")
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "服务器内部错误，请稍后重试"},
+    )
+
+
 @app.get("/", include_in_schema=False)
 def index():
     """首页：返回聊天页面。"""
@@ -92,7 +107,12 @@ def ask_endpoint(request: AskRequest):
 
     # 第 1 步：先查缓存（Cache Aside 模式第一步）
     # 命中 = 别人问过同样的问题，直接把存好的回答端出去，不调大模型
-    cached = cache.get_cached(question)
+    # 注意：Redis 挂了要「降级」——直接走 RAG，不能让整个接口崩掉
+    try:
+        cached = cache.get_cached(question)
+    except Exception as exc:
+        print(f"⚠️ 缓存读取失败，降级为直接问答：{exc}")
+        cached = None
     if cached is not None:
         return AskResponse(
             question=question,
@@ -111,7 +131,10 @@ def ask_endpoint(request: AskRequest):
     answer = ask(question, _chain)
 
     # 第 3 步：把结果写回缓存，下次同样的问题直接命中
-    cache.set_cached(question, answer, sources)
+    try:
+        cache.set_cached(question, answer, sources)
+    except Exception as exc:
+        print(f"⚠️ 缓存写入失败（不影响本次回答）：{exc}")
 
     return AskResponse(
         question=question,

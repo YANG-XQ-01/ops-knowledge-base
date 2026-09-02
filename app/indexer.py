@@ -9,6 +9,7 @@ from langchain_milvus import Milvus
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from sqlalchemy import select
 
+from . import cache
 from .config import (
     DASHSCOPE_API_KEY,
     EMBEDDING_MODEL,
@@ -108,6 +109,20 @@ def index_to_milvus(
     return vector_store
 
 
+def clear_qa_cache() -> None:
+    """向量库重建后，清空旧问答缓存（主动失效）。
+
+    对应阶段 5 的知识点：知识更新后不能只靠 TTL 被动过期，
+    要主动清缓存，否则用户会拿到基于旧知识的回答。
+    缓存清理失败不应该阻断入库，所以捕获异常降级。
+    """
+    try:
+        removed = cache.clear_cache()
+        print(f"    ✅ 已清空 {removed} 条旧问答缓存")
+    except Exception as exc:
+        print(f"    ⚠️ 缓存清理失败（不影响入库）：{exc}")
+
+
 def verify(vector_store: Milvus) -> None:
     """第 5 步：验证——拿真实问题去检索，看能否召回相关文档。"""
     questions = [
@@ -141,6 +156,7 @@ def main() -> None:
     print(f"4/4 写入 Milvus（集合：{MILVUS_COLLECTION}）...")
     vector_store = index_to_milvus(documents, embeddings)
     print("    ✅ 入库完成，开始检索验证")
+    clear_qa_cache()  # 数据更新了，旧缓存作废
     verify(vector_store)
 
 
