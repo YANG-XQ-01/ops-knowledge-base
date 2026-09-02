@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>运维知识库问答系统</title>
+    <!-- 引入样式：让页面好看 -->
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <!-- 整个聊天界面容器 -->
+    <div class="chat-container">
+
+        <!-- 顶部标题栏 -->
+        <header class="chat-header">
+            <h1>🔧 运维知识库问答</h1>
+            <span class="subtitle">MySQL · Redis · Linux</span>
+        </header>
+
+        <!-- 消息展示区：用户和助手的对话气泡都动态加到这里 -->
+        <main id="messages" class="messages">
+            <div class="message assistant">
+                <div class="bubble">
+                    你好！我是运维知识库助手，可以问我 MySQL、Redis、Linux 的运维问题，比如「Redis 缓存穿透怎么解决」。
+                </div>
+            </div>
+        </main>
+
+        <!-- 底部输入区 -->
+        <footer class="input-area">
+            <input
+                id="question-input"
+                type="text"
+                placeholder="输入你的运维问题，回车发送..."
+                autocomplete="off"
+            >
+            <button id="send-button">发送</button>
+        </footer>
+    </div>
+
+    <!-- 引入逻辑：页面的大脑（放 body 最后，确保元素已加载） -->
+    <script src="/static/app.js"></script>
+</body>
+</html>

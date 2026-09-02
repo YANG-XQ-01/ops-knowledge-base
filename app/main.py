@@ -4,8 +4,11 @@
 """
 
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from . import cache
@@ -59,6 +62,17 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan,
 )
+
+# 静态资源目录：项目根目录下的 static 文件夹
+# 把 /static/xxx 的请求映射到 static/xxx 文件（CSS、JS 都靠它）
+STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
+app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+
+
+@app.get("/", include_in_schema=False)
+def index():
+    """首页：返回聊天页面。"""
+    return FileResponse(STATIC_DIR / "index.html")
 
 
 @app.get("/health")

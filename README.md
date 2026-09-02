@@ -9,6 +9,7 @@
 - 阶段 3（已完成）：RAG 问答链路（检索 + 通义千问生成）
 - 阶段 4（已完成）：FastAPI 后端接口（REST API）
 - 阶段 5（已完成）：Redis 缓存优化（Cache Aside）
+- 阶段 6（已完成）：Web 聊天前端页面
 
 ## 运行方式
 
@@ -33,6 +34,9 @@ python -m app.qa_chain
 # 5. 启动 FastAPI 服务（浏览器打开 http://127.0.0.1:8000/docs 有交互式文档）
 uvicorn app.main:app --reload
 ```
+
+服务启动后，浏览器打开 **http://127.0.0.1:8000** 即可使用聊天页面；
+打开 **http://127.0.0.1:8000/docs** 可查看交互式接口文档。
 
 ## Redis 缓存
 
