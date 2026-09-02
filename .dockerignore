@@ -1,0 +1,20 @@
+# 敏感配置绝不进镜像
+.env
+.env.example
+
+# Python 缓存与虚拟环境
+.venv/
+__pycache__/
+*.pyc
+
+# git 与 IDE
+.git/
+.gitignore
+.idea/
+.vscode/
+
+# 测试与缓存
+.pytest_cache/
+tests/
+pytest.ini
+*.log

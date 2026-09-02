@@ -1,0 +1,85 @@
+# docker-compose.yml：一键编排整套系统（用于干净服务器部署）
+#
+# 使用方式：
+#   1. 复制 .env.example 为 .env 并填写 MySQL 密码 / DASHSCOPE_API_KEY
+#   2. docker compose up -d --build
+#   3. 执行初始化（建库建表 + 灌数据 + 向量化）：
+#      docker compose run --rm app python -m app.init_db
+#      docker compose run --rm app python -m app.seed_data
+#      docker compose run --rm app python -m app.indexer
+#   4. 浏览器打开 http://服务器IP:8000
+#
+# 注意：MySQL/Redis/Milvus 的端口只在容器内网互通，不映射到宿主机，
+# 避免和本机已运行的服务冲突（生产环境推荐数据库不对外暴露）。
+
+services:
+  # ---------- MySQL：知识库原始数据 ----------
+  mysql:
+    image: mysql:8.0
+    environment:
+      # 密码从宿主 .env 读取（不要在 yml 里写死！）
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME:-ops_kb}
+    volumes:
+      - mysql-data:/var/lib/mysql  # 数据持久化到命名卷，容器删了数据不丢
+    healthcheck:
+      # 用 mysqladmin ping 判断 MySQL 是否真正就绪
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  # ---------- Redis：问答缓存 ----------
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # ---------- Milvus：向量库（内嵌 etcd 的单机模式） ----------
+  milvus:
+    image: milvusdb/milvus:v3.0.0
+    command: ["milvus", "run", "standalone"]
+    environment:
+      ETCD_USE_EMBED: "true"
+      ETCD_DATA_DIR: /var/lib/milvus/etcd
+      COMMON_STORAGETYPE: local
+      DEPLOY_MODE: STANDALONE
+    volumes:
+      - milvus-data:/var/lib/milvus
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9091/healthz"]
+      interval: 10s
+      timeout: 10s
+      retries: 12
+      start_period: 60s  # Milvus 首次启动较慢，给足宽限
+
+  # ---------- FastAPI 应用 ----------
+  app:
+    build: .
+    ports:
+      - "8000:8000"  # 只把 Web 端口暴露给外部
+    env_file: .env
+    environment:
+      # 容器内用服务名互相访问，覆盖 .env 里的 127.0.0.1
+      DB_HOST: mysql
+      REDIS_HOST: redis
+      MILVUS_HOST: milvus
+      REDIS_PORT: "6379"
+      MILVUS_PORT: "19530"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      milvus:
+        condition: service_started
+
+volumes:
+  mysql-data:
+  redis-data:
+  milvus-data:
