@@ -31,7 +31,8 @@ services:
 
   # ---------- Redis：问答缓存 ----------
   redis:
-    image: redis:7-alpine
+    # 与本机开发环境保持一致（redis:6-alpine，Redis 6 仍在官方维护期）
+    image: redis:6-alpine
     volumes:
       - redis-data:/data
     healthcheck:
