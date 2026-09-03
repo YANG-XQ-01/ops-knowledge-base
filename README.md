@@ -117,11 +117,48 @@ uvicorn app.main:app --reload
 ```bash
 cp .env.example .env          # 填写 MYSQL_ROOT_PASSWORD / DASHSCOPE_API_KEY
 docker compose up -d --build
+# 等待 mysql/redis/milvus 健康（docker compose ps 查看，milvus 首次启动约 1 分钟）
 docker compose run --rm app python -m app.init_db
 docker compose run --rm app python -m app.seed_data
 docker compose run --rm app python -m app.indexer
 # 浏览器访问 http://<服务器IP>:8000
 ```
+
+> 注意：Compose 里的 MySQL 是从空卷启动的，**必须先执行上面三条初始化命令**
+> （建库 → 灌种子数据 → 向量化入库），否则问答接口没有数据可用。
+
+### 本机已有服务时的部署提示
+
+- Compose 中 MySQL/Redis/Milvus **不映射宿主机端口**（只在容器内网互通），
+  与本机已运行的 MySQL（3306）、Redis 容器等不冲突；
+- 但 **app 会占用宿主机 8000 端口**，如果本机已启动 uvicorn，先停掉再 `docker compose up`；
+- 若在干净服务器部署，则无需关心以上提示。
+
+---
+
+## 🩹 常见问题（踩坑记录）
+
+**Q1：Docker 构建报错 `langchain-community>=1.0` 无法满足？**
+
+答：`langchain-community` 使用**独立的 0.x 版本号**（当前 PyPI 最新为 0.4.x），
+与 `langchain` 核心的 1.x 版本号并不同步，**不存在 ≥1.0 的版本**。
+requirements.txt 中应写 `langchain-community>=0.4,<0.5`。
+
+**Q2：容器启动报 `ModuleNotFoundError: No module named 'redis'`？**
+
+答：`redis`（Python 客户端库）必须显式写进 requirements.txt——
+conda 环境里「有」不代表清单里有，Docker 是从零安装，缺一不可。
+
+**Q3：本地 conda 能跑，为什么 Docker 构建还要再验证？**
+
+答：「你的环境能跑」≠「依赖清单正确」。conda 环境是预装且版本互相兼容的；
+requirements.txt 是给从零安装的人用的，必须以 Docker 等干净环境实测为准。
+
+**Q4：pytest 跑完测试后进程不退出？**
+
+答：这台 Windows + Python 3.13 机器上，pytest 向项目内写 `.pytest_cache`
+会导致退出卡死（已定位验证）。`pytest.ini` 已禁用 cacheprovider 插件解决，
+不影响测试结果。
 
 ---
 
