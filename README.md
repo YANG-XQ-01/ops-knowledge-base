@@ -64,6 +64,18 @@
 | 测试 | pytest + httpx + monkeypatch | 接口自动化测试 |
 | 部署 | Docker / Docker Compose | 容器化编排与健康检查 |
 
+**已验证的依赖版本**（开发环境 conda `langchain1.2` 与 Docker 镜像均已实测）：
+
+| 组件 | 版本 |
+|---|---|
+| Python | 3.13.12 |
+| langchain | 1.2.12（langchain-core 1.5.x） |
+| langchain-community | 0.4.x（⚠️ 独立 0.x 版本号，勿写 >=1.0） |
+| langchain-milvus | 0.4.0（对应 pymilvus 3.0.x） |
+| Milvus 服务端 | v3.0.0（Docker standalone） |
+| MySQL | 8.0（本机 / Docker mysql:8.0） |
+| Redis | 6.2（Docker redis:6-alpine） |
+
 ---
 
 ## 📁 项目结构
@@ -135,6 +147,23 @@ docker compose up -d app
 > （建库 → 灌种子数据 → 向量化入库），否则问答接口没有数据可用。
 > 顺序很关键：**app 必须在数据初始化之后启动**，否则它会在 Milvus 集合还不存在时
 > 加载到无效的向量库状态（详见 FAQ Q5）。
+
+**重新部署（清空重置，重新跑一遍用）**：
+
+```bash
+docker compose down -v        # 停止并删除容器、网络和【数据卷】
+                              # ⚠️ -v 会删掉 MySQL/Milvus/Redis 卷里的全部数据
+# 然后严格按上方 1 → 2 → 3 的顺序重新执行
+docker compose up -d --build mysql redis milvus
+docker compose ps             # 等 milvus healthy
+docker compose run --rm app python -m app.init_db
+docker compose run --rm app python -m app.seed_data
+docker compose run --rm app python -m app.indexer
+docker compose up -d app
+```
+
+> 首次执行 `up` 会拉取 MySQL 8 / redis:6-alpine / milvus v3.0.0 镜像
+> （合计约 4~5 GB，取决于网络速度，耐心等待）。
 
 ### 本机已有服务时的部署提示
 
