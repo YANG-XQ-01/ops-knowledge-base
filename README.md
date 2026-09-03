@@ -116,16 +116,25 @@ uvicorn app.main:app --reload
 
 ```bash
 cp .env.example .env          # 填写 MYSQL_ROOT_PASSWORD / DASHSCOPE_API_KEY
-docker compose up -d --build
-# 等待 mysql/redis/milvus 健康（docker compose ps 查看，milvus 首次启动约 1 分钟）
+
+# 1. 先只启动三个数据库服务（不要带 app），等待全部 healthy
+docker compose up -d --build mysql redis milvus
+docker compose ps            # milvus 首次启动约 1 分钟，等它 healthy 再继续
+
+# 2. 用 app 镜像执行数据初始化（此时 MySQL/Milvus 都已就绪）
 docker compose run --rm app python -m app.init_db
 docker compose run --rm app python -m app.seed_data
 docker compose run --rm app python -m app.indexer
+
+# 3. 最后启动 app——确保它启动时集合已存在
+docker compose up -d app
 # 浏览器访问 http://<服务器IP>:8000
 ```
 
 > 注意：Compose 里的 MySQL 是从空卷启动的，**必须先执行上面三条初始化命令**
 > （建库 → 灌种子数据 → 向量化入库），否则问答接口没有数据可用。
+> 顺序很关键：**app 必须在数据初始化之后启动**，否则它会在 Milvus 集合还不存在时
+> 加载到无效的向量库状态（详见 FAQ Q5）。
 
 ### 本机已有服务时的部署提示
 
@@ -159,6 +168,12 @@ requirements.txt 是给从零安装的人用的，必须以 Docker 等干净环�
 答：这台 Windows + Python 3.13 机器上，pytest 向项目内写 `.pytest_cache`
 会导致退出卡死（已定位验证）。`pytest.ini` 已禁用 cacheprovider 插件解决，
 不影响测试结果。
+
+**Q5：页面提问返回 500，日志报 `The number of search params is larger than 1`？**
+
+答：启动顺序问题——app 容器在 `ops_docs` 集合创建**之前**就启动了，
+内存里加载了无效的向量库状态。修复：数据初始化完成后执行
+`docker compose restart app` 让它重新加载即可；正确做法见上方部署顺序。
 
 ---
 
