@@ -16,6 +16,7 @@ services:
   # ---------- MySQL：知识库原始数据 ----------
   mysql:
     image: mysql:8.0
+    restart: unless-stopped  # 服务器重启/崩溃后自动拉起
     environment:
       # 密码从宿主 .env 读取（不要在 yml 里写死！）
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
@@ -23,8 +24,12 @@ services:
     volumes:
       - mysql-data:/var/lib/mysql  # 数据持久化到命名卷，容器删了数据不丢
     healthcheck:
-      # 用 mysqladmin ping 判断 MySQL 是否真正就绪
-      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-p${MYSQL_ROOT_PASSWORD}"]
+      # 用 mysqladmin ping 判断 MySQL 是否真正就绪。
+      # 注意：用 CMD-SHELL + $$MYSQL_ROOT_PASSWORD（运行时容器内环境变量），
+      # 而不是 ${MYSQL_ROOT_PASSWORD}（compose 解析期插值）——
+      # 后者会把密码拼进命令行参数（ps/docker inspect 可见），
+      # 且密码含 $、空格等特殊字符时可能出错。
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p\"$$MYSQL_ROOT_PASSWORD\""]
       interval: 5s
       timeout: 5s
       retries: 20
@@ -33,6 +38,7 @@ services:
   redis:
     # 与本机开发环境保持一致（redis:6-alpine，Redis 6 仍在官方维护期）
     image: redis:6-alpine
+    restart: unless-stopped
     volumes:
       - redis-data:/data
     healthcheck:
@@ -44,6 +50,7 @@ services:
   # ---------- Milvus：向量库（内嵌 etcd 的单机模式） ----------
   milvus:
     image: milvusdb/milvus:v3.0.0
+    restart: unless-stopped
     command: ["milvus", "run", "standalone"]
     environment:
       ETCD_USE_EMBED: "true"
@@ -62,6 +69,7 @@ services:
   # ---------- FastAPI 应用 ----------
   app:
     build: .
+    restart: unless-stopped
     ports:
       - "8000:8000"  # 只把 Web 端口暴露给外部
     env_file: .env
@@ -78,7 +86,9 @@ services:
       redis:
         condition: service_healthy
       milvus:
-        condition: service_started
+        # 必须等 Milvus 真正 healthy 再启动 app，
+        # 否则 app 会在 Milvus 未就绪时加载到无效的向量库状态（曾导致检索 500）
+        condition: service_healthy
 
 volumes:
   mysql-data:

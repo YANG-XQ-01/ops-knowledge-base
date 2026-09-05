@@ -204,6 +204,14 @@ requirements.txt 是给从零安装的人用的，必须以 Docker 等干净环�
 内存里加载了无效的向量库状态。修复：数据初始化完成后执行
 `docker compose restart app` 让它重新加载即可；正确做法见上方部署顺序。
 
+**Q6：Milvus 容器重启后崩溃循环（exit 134 / etcd panic）？**
+
+答：Milvus standalone 内嵌 etcd 在旧数据卷上重启偶发崩溃（已知不稳定点）。
+向量库数据可从 MySQL 重建，标准恢复流程：
+`docker compose down -v` 清空数据卷 → 按上方顺序重新 `up` → 重跑
+init_db / seed_data / indexer。注意：**Milvus 数据是派生物，源头在 MySQL**，
+这也是把知识文档存 MySQL 的原因之一。
+
 ---
 
 ## 🔌 API 说明
